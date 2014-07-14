@@ -46,10 +46,12 @@
 	</Reference>
   </ItemGroup>
   <ItemGroup>
-     <Compile Include="Assets\AtkScript.cs" />
-     <Compile Include="Assets\LazerController.cs" />
-     <Compile Include="Assets\NetworkManager.cs" />
-     <Compile Include="Assets\girlController.cs" />
+     <Compile Include="Assets\Code\AtkScript.cs" />
+     <Compile Include="Assets\Code\ComboBar.cs" />
+     <Compile Include="Assets\Code\LazerController.cs" />
+     <Compile Include="Assets\Code\NetworkManager.cs" />
+     <Compile Include="Assets\Code\girlController.cs" />
+     <Compile Include="Assets\SortThisObject.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
