@@ -16,8 +16,8 @@ public class NetworkManager : MonoBehaviour {
 		
 	}
 	
-	private const string typeName = "UniqueGameName";
-	private const string gameName = "RoomName";
+	private const string typeName = "Zone4-zfxFR";
+	private string gameName = "";
 	string ip = "193.11.162.163";
 //	string ip = "193.10.185.141";
 	string port = "25000";
@@ -25,6 +25,7 @@ public class NetworkManager : MonoBehaviour {
 	private void StartServer()
 	{
 		Network.InitializeServer(32, 25000, !Network.HavePublicAddress());
+		gameName = RandomRoomName();
 		MasterServer.RegisterHost(typeName, gameName);
 		//		MasterServer.ipAddress ="127.0.0.1";
 	}
@@ -55,7 +56,7 @@ public class NetworkManager : MonoBehaviour {
 			{
 				for (int i = 0; i < hostList.Length; i++)
 				{
-					Debug.Log(hostList[i].ip + " " + hostList[i].port);
+					//Debug.Log(hostList[i].ip + " " + hostList[i].port);
 					if (GUI.Button(new Rect(400, 100 + (110 * i), 300, 100), hostList[i].gameName))
 						JoinServer(hostList[i]);
 				}
@@ -91,11 +92,28 @@ public class NetworkManager : MonoBehaviour {
 		Debug.Log("Server Joined");
 		SpawnPlayer();
 	}
-	
-	
+
 	private void SpawnPlayer()
 	{
 //		GameObject p0 = (GameObject)Network.Instantiate(player,new Vector3(0,-0.35f,0),Quaternion.identity,0);
 		Network.Instantiate(player,new Vector3(0,-0.35f,0),Quaternion.identity,0);
 	}
+
+	private string characters = "abcdefghijklmnopqrstuvwxyz1234567890";
+	private string RandomRoomName()	
+	{
+		string rtn = "";
+		for( int i = 0; i < 5; i++ )
+		{
+			rtn += characters[Random.Range( 0, characters.Length )]; 
+		}
+		return rtn;
+	}
 }
+
+
+
+
+
+
+
