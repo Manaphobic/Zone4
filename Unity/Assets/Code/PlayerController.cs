@@ -2,40 +2,39 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class LazerController : MonoBehaviour {
+public class PlayerController : MonoBehaviour {
 
-	public List<Animator> anims;
-//	public Animator pixelGirlAnim;
-//	private bool bRight = true;
-	public float speed;
-	public List<SpriteRenderer> hearts;
-	public List<Sprite> sprites;
-	private int hp = 3;
-	public BoxCollider2D atkZone;
+	public List<Animator> anims;		//lista på animationerna
+	public float speed;					//hur snabbt karaktären rör sig
+	public List<SpriteRenderer> hearts;	//lista på hjärtan
+	public List<Sprite> HeartSprites;	//bilder för två hjärtan bilder
+	private int hp = 3;					//hur mycket hp man har
+	public BoxCollider2D atkZone;		//collidern som bestämmer när och hur man träffar
 
-	private Vector2 direction = new Vector2(0,0);
-	private Vector2 newDirection = new Vector2(0,0);
-	private List<ComboBar> combo = new List<ComboBar>();
-	public GameObject pref;
-	public Transform heartContainer;
-	public TextMesh scoreText;
-	private int score;
-	public int player;
-	public int stock = 3;
-	private bool charge;
-	public Transform playerObj;
-	// Use this for initialization
+	private Vector2 direction = new Vector2(0,0);		//vilken riktning man är påväg
+	private Vector2 newDirection = new Vector2(0,0);	//den nya riktningen man är påväg just nu
+	private List<ComboBar> combo = new List<ComboBar>();	//sparar alla comboBar så vi kan hålla reda på dem
+	public GameObject comboPref;		//vår kombobar som vi instantierar		
+	public TextMesh scoreText;			//den här är en textruta som just nu används för att räkna Stocks
+	public int playerID;				//håller koll på vilket id vi har, så när någon dör så vet den vem som gjorde det
+	public int stock = 3;				//hur många stocks man har
+	private bool charge;				//håller koll på om man just nu laddar sitt vapen
+	public Transform playerObj;			//denna container skalas från 1 till -1 när man vänder sig om
+	
+	
 	void Start () 
 	{
 		scoreText.text = stock.ToString();
-		player = GetInstanceID();
-		atkZone.GetComponent<AtkScript>().player = player;
+		playerID = GetInstanceID();
+		atkZone.GetComponent<AtkScript>().playerID = playerID;
 		SetHP();
+		
 		if ( GetComponent<NetworkView>().isMine  )
 		{
+			//skapa combobar
 			for (int i = 0; i < 3; i++) 
 			{
-				GameObject GO = (GameObject)Instantiate(pref,new Vector3(-2.5f+(i*2.5f),-2.25f,0),Quaternion.identity);
+				GameObject GO = (GameObject)Instantiate(comboPref,new Vector3(-2.5f+(i*2.5f),-2.25f,0),Quaternion.identity);
 				GO.GetComponent<ComboBar>().gameRef = this;
 				combo.Add( GO.GetComponent<ComboBar>());
 			}
@@ -44,14 +43,15 @@ public class LazerController : MonoBehaviour {
 		}
 	}
 
+	//den kollar bara hur mycket hp man har och aktiverar rätt hjärtan
 	private void SetHP()
 	{
 		for (int i = 0; i < hearts.Count; i++) 
 		{
 			if ( hp > i )
-				hearts[i].sprite = sprites[1];
+				hearts[i].sprite = HeartSprites[1];
 			else 
-				hearts[i].sprite = sprites[0];
+				hearts[i].sprite = HeartSprites[0];
 		}
 	}
 
@@ -61,14 +61,10 @@ public class LazerController : MonoBehaviour {
 	{
 		if ( GetComponent<NetworkView>().isMine  )
 		{
-//			if ( Input.GetKeyDown(KeyCode.Space) || Input.GetButtonDown("Fire1") )
-//			{
-//				Atk();
-//			}
-
+			//vi nollställer direction, så vi kan se ifall vi har bytt riktning sen senast med NewDirection
 			direction = new Vector2(0,0);
-
-
+	
+			//move kontroller XBOX
 			if ( Input.GetAxis( "Horizontal" ) > 0.2f )
 				direction.x = 1;
 
@@ -80,12 +76,30 @@ public class LazerController : MonoBehaviour {
 			
 			if ( Input.GetAxis( "Vertical" ) < -0.2f )
 				direction.y = -1;
-
-
+				
+			//move kontroller PC
+			if ( Input.GetKey(KeyCode.W))
+			{
+				direction.y = 1;
+			}
+			if ( Input.GetKey(KeyCode.S))
+			{
+				direction.y = -1;
+			}
+			if ( Input.GetKey(KeyCode.D))
+			{
+				direction.x = 1;
+			}
+			if ( Input.GetKey(KeyCode.A))
+			{
+				direction.x = -1;
+			}
+			
+			//special för att resetta Stocks
 			if ( Input.GetKeyDown(KeyCode.P))
 				Reset();
-//				RecieveDamage(1,-1,player);
 
+			//testar att göra combos
 			if(combo[0].ready && stock > 0)
 			{
 				if ( Input.GetKeyDown(KeyCode.I) || Input.GetButtonDown("Jump"))
@@ -106,6 +120,7 @@ public class LazerController : MonoBehaviour {
 				}
 			}
 	
+			//sätter färg på spelaren
 			if ( Input.GetKey(KeyCode.Alpha1))
 				SetColor(231,100,15,191,36,0);
 			if ( Input.GetKey(KeyCode.Alpha2))
@@ -117,25 +132,7 @@ public class LazerController : MonoBehaviour {
 			if ( Input.GetKey(KeyCode.Alpha5))
 				SetColor(41,41,41,142,142,142);
 
-
-
-			if ( Input.GetKey(KeyCode.W))
-			{
-				direction.y = 1;
-			}
-			if ( Input.GetKey(KeyCode.S))
-			{
-				direction.y = -1;
-			}
-			if ( Input.GetKey(KeyCode.D))
-			{
-				direction.x = 1;
-			}
-			if ( Input.GetKey(KeyCode.A))
-			{
-				direction.x = -1;
-			}
-
+			//om vi går i en ny riktning så måste det uppdateras på alla spelare
 			if ( direction != newDirection && anims[0].GetCurrentAnimatorStateInfo(0).IsName("Damaged") == false )
 			{
 				Walk(direction.x,direction.y);
@@ -143,6 +140,7 @@ public class LazerController : MonoBehaviour {
 			}
 		}
 
+		//om vi kan så ska vi flytta på oss
 		if ( anims[0].GetCurrentAnimatorStateInfo(0).IsName("Atk") == false && anims[0].GetCurrentAnimatorStateInfo(0).IsName("Damaged") == false )
 		{
 			float chargeMod = 1;
@@ -150,6 +148,8 @@ public class LazerController : MonoBehaviour {
 				chargeMod = 0.4f;
 
 			transform.position += new Vector3(Time.deltaTime*speed*direction.x*chargeMod,Time.deltaTime*speed*direction.y*chargeMod,0);
+			
+			//boundaries på skärmen
 			if ( transform.position.y > 0.83f )
 				transform.position = new Vector3( transform.position.x,0.83f,0);
 			if ( transform.position.x > 4.78f )
@@ -159,6 +159,7 @@ public class LazerController : MonoBehaviour {
 			if ( transform.position.x < -4.78f )
 				transform.position = new Vector3( -4.78f,transform.position.y,0);
 
+			//sätter rätt sortingorder så de ritas ut i rätt ordning
 			foreach (Animator item in anims) {
 				item.GetComponent<SpriteRenderer>().sortingOrder = 1000 - Mathf.FloorToInt((transform.position.y*100));
 			}
@@ -191,29 +192,31 @@ public class LazerController : MonoBehaviour {
 	}	
 	public void GetNextComboReady()
 	{
+		//ta bort den gamla
 		combo[0].bRemove = true;
-//		Destroy(combo[0].gameObject);
 		combo.RemoveAt(0);
 		
-		GameObject GO = (GameObject)Instantiate(pref,new Vector3(5f,-2.25f,0),Quaternion.identity);
+		//skapa en ny längst till höger
+		GameObject GO = (GameObject)Instantiate(comboPref,new Vector3(5f,-2.25f,0),Quaternion.identity);
 		GO.GetComponent<ComboBar>().gameRef = this;
 		combo.Add( GO.GetComponent<ComboBar>());
 		
+		//få alla att röra sig åt vänster
 		for (int i = 0; i < combo.Count; i++) 
 		{
 			combo[i].bMove++;
 		}
-//		combo[0].SetGlow();
 	}
 
+	//denna körs ifrån comboBar om tiden tagit slut
 	public void FailedCombo()
 	{
 		EndCharge();
 	}
 	
+	//säger åt alla spelare att vi håller på att går, sätter animation och direction
 	[RPC] public void Walk( float x0, float y0 )
 	{
-
 		Vector2 dir = new Vector2(x0,y0);
 		direction = dir;
 		if ( dir.magnitude > 0 )
@@ -226,20 +229,6 @@ public class LazerController : MonoBehaviour {
 			foreach (Animator item in anims )
 				item.SetBool("Walking",false);
 		}
-
-		if ( transform.localScale.x != dir.x && dir.x != 0)
-		{
-//			if ( dir.x == 1 )
-//			{
-//				transform.position += new Vector3(0.25f,0,0);
-////				heartContainer.position += new Vector3(0.25f,0,0);
-//			}
-//			else
-//			{
-//				transform.position += new Vector3(-0.25f,0,0);
-////				heartContainer.position += new Vector3(-0.25f,0,0);
-//			}
-		}
 		
 		if ( dir.x != 0 )
 			playerObj.localScale = new Vector3(dir.x,1,1);
@@ -248,6 +237,7 @@ public class LazerController : MonoBehaviour {
 			GetComponent<NetworkView>().RPC("Walk",RPCMode.Others,dir.x,dir.y);
 	}
 
+	//resettar stocks till 3, dock fungerar bara på 1 spelare
 	[RPC] public void Reset()
 	{
 		stock = 3;
@@ -257,6 +247,7 @@ public class LazerController : MonoBehaviour {
 			GetComponent<NetworkView>().RPC("Reset",RPCMode.Others);
 	}
 
+	//om en spelare börjar chargea
 	[RPC] public void Charge()
 	{
 		charge = true;
@@ -268,6 +259,7 @@ public class LazerController : MonoBehaviour {
 			item.SetBool("Charge",true);
 	}
 	
+	//när spelaren slutar chargea
 	[RPC] public void EndCharge()
 	{
 		charge = false;
@@ -279,6 +271,7 @@ public class LazerController : MonoBehaviour {
 			item.SetBool("Charge",false);
 	}
 	
+	//när den attackerar så aktiveras boxcollider
 	[RPC] public void Atk()
 	{
 		atkZone.enabled = true;
@@ -290,19 +283,7 @@ public class LazerController : MonoBehaviour {
 			item.SetTrigger("Atk");
 	}
 
-	[RPC] public void GiveScore( int p0) 
-	{
-		if ( p0 == player )
-		{
-			score++;
-		}
-
-//		scoreText.text = score.ToString();
-
-		if ( GetComponent<NetworkView>().isMine )
-			GetComponent<NetworkView>().RPC("GiveScore",RPCMode.Others,p0);
-	}
-
+	//om man får skada så ska man veta vart skadan kom ifrån
 	[RPC] public void RecieveDamage( int amount , float dirX, int p0) 
 	{
 		foreach (Animator item in anims )
@@ -310,21 +291,24 @@ public class LazerController : MonoBehaviour {
 
 		hp -= amount;
 		SetHP();
+		
+		//knockback
 		if ( dirX == 1 )
 			transform.position += new Vector3(0.5f,0,0);
 		else
 			transform.position -= new Vector3(0.5f,0,0);
 		
+		//om man dör
 		if ( hp <= 0 )
 		{
 			stock--;
 			scoreText.text = stock.ToString();
-			GiveScore(p0);
 			transform.position = new Vector3(4.18f,0.67f,0);
 			hp = 3;
 			SetHP();
 			transform.rotation = Quaternion.identity;
 		}
+		
 		if ( GetComponent<NetworkView>().isMine )
 			GetComponent<NetworkView>().RPC("RecieveDamage",RPCMode.Others,amount,dirX,p0);
 	}

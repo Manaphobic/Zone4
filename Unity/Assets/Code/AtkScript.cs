@@ -4,7 +4,8 @@ using System.Collections;
 public class AtkScript : MonoBehaviour {
 	
 	private float timer;
-	public int player;
+	public int playerID;
+	
 	// Use this for initialization
 	void Start () {
 	
@@ -29,10 +30,10 @@ public class AtkScript : MonoBehaviour {
 	{
 		if (coll.gameObject.tag == "Player" )
 		{
-			if ( coll.transform.GetComponent<LazerController>().player != player )
+			if ( coll.transform.GetComponent<PlayerController>().playerID != playerID )
 			{
 				GetComponent<BoxCollider2D>().enabled = false;
-				coll.transform.GetComponent<LazerController>().RecieveDamage(1,transform.parent.transform.localScale.x,player);
+				coll.transform.GetComponent<PlayerController>().RecieveDamage(1,transform.parent.transform.localScale.x,playerID);
 			}
 		}
 	}

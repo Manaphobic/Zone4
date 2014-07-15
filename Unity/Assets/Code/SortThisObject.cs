@@ -3,6 +3,7 @@ using System.Collections;
 
 public class SortThisObject : MonoBehaviour {
 
+	//den räknar sorting ifrån pivot positionen, så vi behöver en offset som räknar vart fötterna är på bilden
 	public float offsetY;
 
 	// Use this for initialization

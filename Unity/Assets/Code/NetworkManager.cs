@@ -31,8 +31,6 @@ public class NetworkManager : MonoBehaviour {
 	
 	void OnServerInitialized()
 	{
-//		Screen.showCursor = false;
-//		Screen.lockCursor = true;
 		Debug.Log("Server Initializied");
 		SpawnPlayer();
 	}
@@ -43,14 +41,6 @@ public class NetworkManager : MonoBehaviour {
 		{
 			ip = GUI.TextArea(new Rect(0,0,100,25),ip,200);
 			port = GUI.TextArea(new Rect(100,0,50,25),port,200);
-//			if (GUI.Button(new Rect(0, 0, 100,75), "Farmer"))
-//				classType = 0;
-//			if (GUI.Button(new Rect(100, 0, 100, 75), "Builder"))
-//				classType = 1;
-//			if (GUI.Button(new Rect(200, 0, 100, 75), "Engineer"))
-//				classType = 2;
-//			if (GUI.Button(new Rect(300, 0, 100, 75), "Alchemist"))
-//				classType = 3;
 			
 			if (GUI.Button(new Rect(100, 100, 250, 100), "Start Server"))
 				StartServer();
@@ -99,22 +89,13 @@ public class NetworkManager : MonoBehaviour {
 	void OnConnectedToServer()
 	{
 		Debug.Log("Server Joined");
-//		Screen.showCursor = false;
-//		Screen.lockCursor = true;
 		SpawnPlayer();
 	}
 	
 	
 	private void SpawnPlayer()
 	{
-		GameObject p0 = (GameObject)Network.Instantiate(player,new Vector3(0,-0.35f,0),Quaternion.identity,0);
-//		if ( classType == 0 )
-//			p0.GetComponent<myPlayer>().classType = myPlayer.FARMER;
-//		if ( classType == 1 )
-//			p0.GetComponent<myPlayer>().classType = myPlayer.BUILDER;
-//		if ( classType == 2 )
-//			p0.GetComponent<myPlayer>().classType = myPlayer.ENGINEER;
-//		if ( classType == 3 )
-//			p0.GetComponent<myPlayer>().classType = myPlayer.ALCHEMIST;
+//		GameObject p0 = (GameObject)Network.Instantiate(player,new Vector3(0,-0.35f,0),Quaternion.identity,0);
+		Network.Instantiate(player,new Vector3(0,-0.35f,0),Quaternion.identity,0);
 	}
 }
