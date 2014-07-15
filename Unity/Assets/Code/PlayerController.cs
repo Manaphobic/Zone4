@@ -10,6 +10,7 @@ public class PlayerController : MonoBehaviour {
 	public List<Sprite> HeartSprites;	//bilder för två hjärtan bilder
 	private int hp = 3;					//hur mycket hp man har
 	public BoxCollider2D atkZone;		//collidern som bestämmer när och hur man träffar
+	private bool rainbowColored = false;//special color ftw
 
 	private Vector2 direction = new Vector2(0,0);		//vilken riktning man är påväg
 	private Vector2 newDirection = new Vector2(0,0);	//den nya riktningen man är påväg just nu
@@ -20,16 +21,19 @@ public class PlayerController : MonoBehaviour {
 	public int stock = 3;				//hur många stocks man har
 	private bool charge;				//håller koll på om man just nu laddar sitt vapen
 	public Transform playerObj;			//denna container skalas från 1 till -1 när man vänder sig om
+
+	//GetComponent Cache
+	private NetworkView thisNetworkView;
 	
-	
-	void Start () 
+	void Start()
 	{
 		scoreText.text = stock.ToString();
 		playerID = GetInstanceID();
 		atkZone.GetComponent<AtkScript>().playerID = playerID;
 		SetHP();
+		thisNetworkView = GetComponent<NetworkView>();
 		
-		if ( GetComponent<NetworkView>().isMine  )
+		if ( thisNetworkView.isMine )
 		{
 			//skapa combobar
 			for (int i = 0; i < 3; i++) 
@@ -55,45 +59,18 @@ public class PlayerController : MonoBehaviour {
 		}
 	}
 
-
 	// Update is called once per frame
 	void Update () 
 	{
-		if ( GetComponent<NetworkView>().isMine  )
+		if ( thisNetworkView.isMine  )
 		{
 			//vi nollställer direction, så vi kan se ifall vi har bytt riktning sen senast med NewDirection
 			direction = new Vector2(0,0);
 	
-			//move kontroller XBOX
-			if ( Input.GetAxis( "Horizontal" ) > 0.2f )
-				direction.x = 1;
-
-			if ( Input.GetAxis( "Horizontal" ) < -0.2f )
-				direction.x = -1;
-
-			if ( Input.GetAxis( "Vertical" ) > 0.2f )
-				direction.y = 1;
-			
-			if ( Input.GetAxis( "Vertical" ) < -0.2f )
-				direction.y = -1;
-				
-			//move kontroller PC
-			if ( Input.GetKey(KeyCode.W))
-			{
-				direction.y = 1;
-			}
-			if ( Input.GetKey(KeyCode.S))
-			{
-				direction.y = -1;
-			}
-			if ( Input.GetKey(KeyCode.D))
-			{
-				direction.x = 1;
-			}
-			if ( Input.GetKey(KeyCode.A))
-			{
-				direction.x = -1;
-			}
+			//move 
+			direction.x = Input.GetAxis( "Horizontal" );
+			direction.y = Input.GetAxis( "Vertical" );
+			direction.Normalize();
 			
 			//special för att resetta Stocks
 			if ( Input.GetKeyDown(KeyCode.P))
@@ -102,35 +79,43 @@ public class PlayerController : MonoBehaviour {
 			//testar att göra combos
 			if(combo[0].ready && stock > 0)
 			{
-				if ( Input.GetKeyDown(KeyCode.I) || Input.GetButtonDown("Jump"))
+				if ( Input.GetButtonDown("Y"))
 				{
 					TestCombo(0);
 				}
-				else if ( Input.GetKeyDown(KeyCode.L) || Input.GetButtonDown("Fire2"))
+				else if ( Input.GetButtonDown("B"))
 				{
 					TestCombo(1);
 				}
-				else if ( Input.GetKeyDown(KeyCode.K) || Input.GetButtonDown("Fire1"))
+				else if ( Input.GetButtonDown("A"))
 				{
 					TestCombo(2);
 				}
-				else if ( Input.GetKeyDown(KeyCode.J) || Input.GetButtonDown("Fire3"))
+				else if ( Input.GetButtonDown("X"))
 				{
 					TestCombo(3);
 				}
 			}
-	
+
 			//sätter färg på spelaren
-			if ( Input.GetKey(KeyCode.Alpha1))
+			if ( Input.GetKeyDown(KeyCode.Alpha1) )
 				SetColor(231,100,15,191,36,0);
-			if ( Input.GetKey(KeyCode.Alpha2))
+			if ( Input.GetKeyDown(KeyCode.Alpha2))
 				SetColor(69,209,229,33,182,176);
-			if ( Input.GetKey(KeyCode.Alpha3))
+			if ( Input.GetKeyDown(KeyCode.Alpha3))
 				SetColor(255,244,158,165,251,255);
-			if ( Input.GetKey(KeyCode.Alpha4))
+			if ( Input.GetKeyDown(KeyCode.Alpha4))
 				SetColor(139,140,249,247,101,255);
-			if ( Input.GetKey(KeyCode.Alpha5))
+			if ( Input.GetKeyDown(KeyCode.Alpha5))
 				SetColor(41,41,41,142,142,142);
+			if( Input.GetKeyDown( KeyCode.F9 ) ) //SHSHSHHSHH, SECRET DONT LOOK
+			{
+				rainbowColored = !rainbowColored;
+				if( rainbowColored )
+					StartCoroutine( "RainbowColor" );
+				else
+					StopCoroutine( "RainbowColor" );
+			}
 
 			//om vi går i en ny riktning så måste det uppdateras på alla spelare
 			if ( direction != newDirection && anims[0].GetCurrentAnimatorStateInfo(0).IsName("Damaged") == false )
@@ -172,6 +157,15 @@ public class PlayerController : MonoBehaviour {
 		}
 	}
 
+	IEnumerator RainbowColor()
+	{
+		while( true )
+		{
+			SetColor( Random.Range( 0, 255 ), Random.Range( 0, 255 ), Random.Range( 0, 255 ), Random.Range( 0, 255 ), Random.Range( 0, 255 ), Random.Range( 0, 255 ) );
+			yield return new WaitForSeconds( 0.5f );
+		}
+	}
+
 	private void TestCombo( int button )
 	{
 		if ( combo[0].ButtonPressed(button) )
@@ -184,12 +178,13 @@ public class PlayerController : MonoBehaviour {
 				Atk();
 			}
 		}
-		else
+		else		
 		{
 			GetNextComboReady();
 			FailedCombo();
 		}
-	}	
+	}
+
 	public void GetNextComboReady()
 	{
 		//ta bort den gamla
@@ -213,7 +208,19 @@ public class PlayerController : MonoBehaviour {
 	{
 		EndCharge();
 	}
-	
+
+	//SERVER
+	void OnPlayerConnected( NetworkPlayer player )
+	{
+		//Se till att uppdatera vilken riktning som alla spelare står i
+		if( playerObj.localScale.x < 0 ) thisNetworkView.RPC( "IsMirrored", player );
+	}
+
+	[RPC] public void IsMirrored()
+	{
+		playerObj.localScale = new Vector3( -1, 1, 1 );
+	}
+
 	//säger åt alla spelare att vi håller på att går, sätter animation och direction
 	[RPC] public void Walk( float x0, float y0 )
 	{
@@ -231,10 +238,10 @@ public class PlayerController : MonoBehaviour {
 		}
 		
 		if ( dir.x != 0 )
-			playerObj.localScale = new Vector3(dir.x,1,1);
+			playerObj.localScale = new Vector3( (dir.x < 0 ? -1 : 1 ),1,1);
 
-		if ( GetComponent<NetworkView>().isMine )
-			GetComponent<NetworkView>().RPC("Walk",RPCMode.Others,dir.x,dir.y);
+		if ( thisNetworkView.isMine )
+			thisNetworkView.RPC("Walk",RPCMode.Others,dir.x,dir.y);
 	}
 
 	//resettar stocks till 3, dock fungerar bara på 1 spelare
@@ -243,32 +250,32 @@ public class PlayerController : MonoBehaviour {
 		stock = 3;
 		scoreText.text = stock.ToString();
 
-		if ( GetComponent<NetworkView>().isMine )
-			GetComponent<NetworkView>().RPC("Reset",RPCMode.Others);
+		if ( thisNetworkView.isMine )
+			thisNetworkView.RPC("Reset",RPCMode.Others);
 	}
 
 	//om en spelare börjar chargea
 	[RPC] public void Charge()
 	{
 		charge = true;
-		
-		if ( GetComponent<NetworkView>().isMine )
-			GetComponent<NetworkView>().RPC("Charge",RPCMode.Others);
 
 		foreach (Animator item in anims )
 			item.SetBool("Charge",true);
+
+		if ( thisNetworkView.isMine )
+			thisNetworkView.RPC("Charge",RPCMode.Others);
 	}
 	
 	//när spelaren slutar chargea
 	[RPC] public void EndCharge()
 	{
 		charge = false;
-		
-		if ( GetComponent<NetworkView>().isMine )
-			GetComponent<NetworkView>().RPC("EndCharge",RPCMode.Others);
 
 		foreach (Animator item in anims )
 			item.SetBool("Charge",false);
+
+		if ( thisNetworkView.isMine )
+			thisNetworkView.RPC("EndCharge",RPCMode.Others);
 	}
 	
 	//när den attackerar så aktiveras boxcollider
@@ -276,22 +283,20 @@ public class PlayerController : MonoBehaviour {
 	{
 		atkZone.enabled = true;
 
-		if ( GetComponent<NetworkView>().isMine )
-			GetComponent<NetworkView>().RPC("Atk",RPCMode.Others);
-
 		foreach (Animator item in anims )
 			item.SetTrigger("Atk");
+
+		if ( thisNetworkView.isMine )
+			thisNetworkView.RPC("Atk",RPCMode.Others);
 	}
 
 	//om man får skada så ska man veta vart skadan kom ifrån
+	//ENDAST ANIMATION
 	[RPC] public void RecieveDamage( int amount , float dirX, int p0) 
 	{
 		foreach (Animator item in anims )
 			item.SetTrigger("Damage");
 
-		hp -= amount;
-		SetHP();
-		
 		//knockback
 		if ( dirX == 1 )
 			transform.position += new Vector3(0.5f,0,0);
@@ -299,18 +304,40 @@ public class PlayerController : MonoBehaviour {
 			transform.position -= new Vector3(0.5f,0,0);
 		
 		//om man dör
-		if ( hp <= 0 )
+		if ( hp - amount <= 0 )
+		{
+			if ( thisNetworkView.isMine )
+			{
+				SyncHp( 3, true );
+			}
+		}else
+		{
+			if ( thisNetworkView.isMine )
+			{
+				SyncHp( hp - amount, false );
+			}
+		}
+		
+		if ( thisNetworkView.isMine )
+			thisNetworkView.RPC("RecieveDamage",RPCMode.Others,amount,dirX,p0);
+	}
+
+	//Syncar hp
+	[RPC] public void SyncHp( int hp, bool loseStock )
+	{
+		this.hp = hp;
+		SetHP();
+
+		if( loseStock )
 		{
 			stock--;
 			scoreText.text = stock.ToString();
 			transform.position = new Vector3(4.18f,0.67f,0);
-			hp = 3;
-			SetHP();
 			transform.rotation = Quaternion.identity;
 		}
-		
-		if ( GetComponent<NetworkView>().isMine )
-			GetComponent<NetworkView>().RPC("RecieveDamage",RPCMode.Others,amount,dirX,p0);
+
+		if ( thisNetworkView.isMine )
+			thisNetworkView.RPC( "SyncHp", RPCMode.OthersBuffered, hp, loseStock );
 	}
 
 	[RPC] public void SetColor( int R , int G ,int B, int R2 , int G2 ,int B2 ) 
@@ -318,7 +345,7 @@ public class PlayerController : MonoBehaviour {
 		anims[1].GetComponent<SpriteRenderer>().color = new Color(R/255f,G/255f,B/255f);
 		anims[2].GetComponent<SpriteRenderer>().color = new Color(R2/255f,G2/255f,B2/255f);
 
-		if ( GetComponent<NetworkView>().isMine )
-			GetComponent<NetworkView>().RPC("SetColor",RPCMode.Others,R,G,B,R2,G2,B2);
+		if ( thisNetworkView.isMine )
+			thisNetworkView.RPC("SetColor",RPCMode.OthersBuffered,R,G,B,R2,G2,B2);
 	}
 }

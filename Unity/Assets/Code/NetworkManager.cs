@@ -9,6 +9,7 @@ public class NetworkManager : MonoBehaviour {
 	void Start () 
 	{
 		Application.runInBackground = true;
+		RefreshHostList();
 	}
 	
 	// Update is called once per frame
@@ -29,13 +30,52 @@ public class NetworkManager : MonoBehaviour {
 		MasterServer.RegisterHost(typeName, gameName);
 		//		MasterServer.ipAddress ="127.0.0.1";
 	}
-	
+
+	//Server
 	void OnServerInitialized()
 	{
 		Debug.Log("Server Initializied");
 		SpawnPlayer();
 	}
-	
+
+	//Client
+	void OnConnectedToServer()
+	{
+		Debug.Log("Joined Server");
+		SpawnPlayer();
+	}
+
+	//Server
+	void OnPlayerDisconnected(NetworkPlayer player) 
+	{
+		Debug.Log("Client disconnected");
+		//Rensa upp objekt som spelaren skapade (och eventuella rpc anrop som finns kvar)
+        Network.RemoveRPCs(player);
+        Network.DestroyPlayerObjects(player);
+    }
+
+	void OnPlayerConnected( NetworkPlayer player )
+	{
+		Debug.Log("Client connected");
+	}
+
+	//Client
+	void OnDisconnectedFromServer(NetworkDisconnection info) 
+	{
+		Debug.Log("Disconnected from server: " + info);
+		Application.LoadLevel( Application.loadedLevel ); //ladda om leveln så alla karaktärer försvinner
+	}
+
+	/* Function för att anropa en viss function på alla gameobjects i scenen
+	 * public void BroadcastAll( string function, object msg ) 
+	{
+		GameObject[] gos = (GameObject[])GameObject.FindObjectsOfType(typeof(GameObject));
+		foreach (GameObject go in gos) {
+			if (go && go.transform.parent == null) 				
+				go.gameObject.BroadcastMessage(function, msg, SendMessageOptions.DontRequireReceiver);
+		}
+	}*/
+
 	void OnGUI()
 	{
 		if (!Network.isClient && !Network.isServer)
@@ -82,15 +122,10 @@ public class NetworkManager : MonoBehaviour {
 	{
 		Network.Connect(hostData);
 	}
+
 	private void JoinByIP()
 	{
 		Network.Connect(ip, System.Int32.Parse(port));
-	}
-
-	void OnConnectedToServer()
-	{
-		Debug.Log("Server Joined");
-		SpawnPlayer();
 	}
 
 	private void SpawnPlayer()
