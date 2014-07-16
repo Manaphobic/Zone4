@@ -99,22 +99,25 @@ public class PlayerController : MonoBehaviour {
 
 			//sätter färg på spelaren
 			if ( Input.GetKeyDown(KeyCode.Alpha1) )
-				SetColor(231,100,15,191,36,0);
+				SetColor(231,100,15,191,36,0,0);
 			if ( Input.GetKeyDown(KeyCode.Alpha2))
-				SetColor(69,209,229,33,182,176);
+				SetColor(69,209,229,33,182,176,0);
 			if ( Input.GetKeyDown(KeyCode.Alpha3))
-				SetColor(255,244,158,165,251,255);
+				SetColor(255,244,158,165,251,255,0);
 			if ( Input.GetKeyDown(KeyCode.Alpha4))
-				SetColor(139,140,249,247,101,255);
+				SetColor(139,140,249,247,101,255,0);
 			if ( Input.GetKeyDown(KeyCode.Alpha5))
-				SetColor(41,41,41,142,142,142);
+				SetColor(41,41,41,142,142,142,0);
 			if( Input.GetKeyDown( KeyCode.F9 ) ) //SHSHSHHSHH, SECRET DONT LOOK
 			{
 				rainbowColored = !rainbowColored;
 				if( rainbowColored )
 					StartCoroutine( "RainbowColor" );
 				else
+				{
 					StopCoroutine( "RainbowColor" );
+					SetColor( 231,100,15,191,36,0,0 );
+				}
 			}
 
 			//om vi går i en ny riktning så måste det uppdateras på alla spelare
@@ -161,7 +164,7 @@ public class PlayerController : MonoBehaviour {
 	{
 		while( true )
 		{
-			SetColor( Random.Range( 0, 255 ), Random.Range( 0, 255 ), Random.Range( 0, 255 ), Random.Range( 0, 255 ), Random.Range( 0, 255 ), Random.Range( 0, 255 ) );
+			SetColor( 0, 0, 0, Random.Range( 0, 255 ), Random.Range( 0, 255 ), Random.Range( 0, 255 ), 1.0f );
 			yield return new WaitForSeconds( 0.5f );
 		}
 	}
@@ -340,12 +343,13 @@ public class PlayerController : MonoBehaviour {
 			thisNetworkView.RPC( "SyncHp", RPCMode.OthersBuffered, hp, loseStock );
 	}
 
-	[RPC] public void SetColor( int R , int G ,int B, int R2 , int G2 ,int B2 ) 
+	[RPC] public void SetColor( int R , int G ,int B, int R2 , int G2 ,int B2, float enableSpecial ) 
 	{
 		anims[1].GetComponent<SpriteRenderer>().color = new Color(R/255f,G/255f,B/255f);
 		anims[2].GetComponent<SpriteRenderer>().color = new Color(R2/255f,G2/255f,B2/255f);
+		anims[1].GetComponent<SpriteRenderer>().material.SetFloat( "_Enabled", enableSpecial );
 
 		if ( thisNetworkView.isMine )
-			thisNetworkView.RPC("SetColor",RPCMode.OthersBuffered,R,G,B,R2,G2,B2);
+			thisNetworkView.RPC("SetColor",RPCMode.OthersBuffered,R,G,B,R2,G2,B2,enableSpecial);
 	}
 }
